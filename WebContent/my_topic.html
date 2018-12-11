@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>my-帖子</title>
+<meta name="viewport"
+	content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<!--标准mui.css-->
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+<style type="text/css">
+.mui-plus.mui-android header.mui-bar {
+	display: none;
+}
+
+.mui-plus.mui-android .mui-bar-nav ~.mui-content {
+	padding: 0;
+}
+</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">my-帖子</h1>
+	</header>
+	<div class="mui-content">
+		<div class="mui-content-padded" style="margin: 10px;">
+			<div class="mui-input-row mui-search">
+				<input id="topic_search" type="search" class="mui-input-clear"
+					placeholder="贴子搜索" style="margin-bottom: 0px">
+			</div>
+		</div>
+		<!--下拉刷新容器-->
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper"
+			style="margin: 85px 0 0">
+			<div class="mui-scroll">
+				<div id="user_card" class="mui-card">
+					<div id="user_head_img" class="mui-card-header mui-card-media"
+						style="height: 80vw"></div>
+					<div class="mui-card-content">
+						<div class="mui-card-content-inner">
+							<p id="user_name" style="color: #333;"></p>
+							<p id="user_pets_name" style="margin-bottom: 0px;"></p>
+						</div>
+					</div>
+					
+				</div>
+				<!--帖子列表-->
+				<div class="mui-card" style="margin-bottom: 35px;">
+					<ul id="tab_list" class="mui-table-view">
+
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="./js/mui.min.js"></script>
+	<script src="js/app.js"></script>
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script>
+		(function(mui, doc) {
+			mui.init({
+				pullRefresh : {
+					container : '#pullrefresh',
+					down : {
+						callback : pulldownRefresh,
+						auto : true
+					},
+					up : {
+						contentrefresh : '正在加载...',
+						callback : pullupRefresh
+					}
+				}
+			});
+
+			var pageIndex = 0;
+			/**
+			 * 下拉刷新具体业务实现
+			 */
+			function pulldownRefresh() {
+				getTopicList(true);
+			}
+
+			/**
+			 * 上拉加载具体业务实现
+			 */
+			function pullupRefresh() {
+				getTopicList(false);
+			}
+
+			function getTopicList(upOrDown) {
+				if (!upOrDown)
+					pageIndex++;
+				else
+					pageIndex = 1;
+
+				var topic={
+						pageIndex:pageIndex,
+						pageCount:10,
+						user_id:app.getUser().user_id,
+						token:localStorage.getItem('$token')
+				};
+				
+				if($("#topic_search").val().length > 0)
+					topic.search_key=$("#topic_search").val();
+
+				$.ajax({
+							url : "./GetTopic",
+							data :  JSON.stringify(topic),
+							type : "post",
+							beforeSend : function() {
+							},
+							error : function(data) {
+								mui.toast(data.responseText);
+							},
+							success : function(data) {
+								if (data.topic!=null&&data.topic.length > 0) {
+									var result = "";
+
+									for (var i = 0; i < data.topic.length; i++) {
+										var topic_href = "./topic_page.html?topic_id=" + data.topic[i].topic_id + "&topic_title=" 
+												+ encodeURIComponent(data.topic[i].topic_title) + "&user_id=" + data.topic[i].user_id
+												+ "&user_head_img=" + data.topic[i].user_head_img + "&user_name=" + data.topic[i].user_name 
+												+ "&topic_create_time=" + data.topic[i].topic_create_time
+												+ "&topic_content=" + encodeURIComponent(data.topic[i].topic_content) 
+												+ "&star_count=" + data.topic[i].star_count;
+										for (var j = 1; j < 10; j++) {
+											if (data.topic[i]["topic_img" + j] != null) {
+												topic_href += "&topic_img" + j + "=" + data.topic[i]["topic_img" + j];
+											}
+										}
+										
+										result += "<li class=\"mui-table-view-cell mui-media\"><a "
+								+ "href=\""+topic_href+"\"> <img class=\"mui-media-object mui-pull-right\""+
+							"src=\""+data.topic[i].topic_img1+"\">"
+												+ "<div class=\"mui-media-body\">" + data.topic[i].topic_title + "<p>" + data.topic[i].topic_content + "</p></div></a></li>";
+									}
+									if (upOrDown)
+										$("#tab_list").html(result);
+									else
+										$("#tab_list").append(result);
+
+									mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+									mui('#pullrefresh').pullRefresh().endPullupToRefresh(data.length < 10); //参数为true代表没有更多数据了。
+
+								} else {
+									mui.toast(data.result);
+									mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+									mui('#pullrefresh').pullRefresh().endPullupToRefresh(true);
+								}
+								if(data.result.indexOf("token无效")!=-1){
+									setInterval(function() {
+										mui.openWindow({
+											url : 'login.html',
+											id : 'login',
+											show : {
+												aniShow : 'pop-in'
+											}
+										});
+									}, 2000);
+								}
+								localStorage.setItem('$token', data.token);
+							}
+						});
+			}
+
+			mui.ready(function() {
+				var user = app.getUser();
+				if (user.user_name == null) {
+					mui.toast('登录信息不存在，请重新登录');
+					setInterval(function() {
+						mui.openWindow({
+							url : 'login.html',
+							id : 'login',
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+					}, 2000);
+					return;
+				}
+				$('#user_head_img').css("background-image", "url(" + GetQueryString("user_head_img") + ")");
+				$('#user_name').html("用户名："+GetQueryString("user_name"));
+				$('#user_pets_name').html("昵称："+GetQueryString("user_pet_name"));
+				$("title").html(GetQueryString("user_pet_name")==null?GetQueryString("user_name"):GetQueryString("user_pet_name") + "\t-\t帖子");
+				$(".mui-title").html(GetQueryString("user_pet_name")==null?GetQueryString("user_name"):GetQueryString("user_pet_name") + "\t-\t贴子");
+				
+				if(GetQueryString("user_id")!=app.getUser().user_id){
+					$('#user_card').append("<div class=\"mui-card-footer\">"+
+							"<a id=\"give_integration\" class=\"mui-card-link\" style=\"color:#DB7093;\">送积分("
+									+GetQueryString("user_integration")+")</a> <a id=\"chat_message\""+
+								"class=\"mui-card-link\" href=\"./chat_message.html?to_user_head_img="+GetQueryString("user_head_img")
+								+"&to_user_id="+GetQueryString("user_id")
+								+"&to_user_name="+GetQueryString("user_name")
+								+"\">私信</a></div>");
+					
+					$('#give_integration').on('tap',function(){
+						giveIntegration(GetQueryString("user_id"),app.getUser().user_id);
+					});
+					
+					$('#chat_message').on('tap',function(){
+						var url = $(this).attr("href");
+						mui.openWindow({
+						    id:'chat_message',
+						    url:url,
+						    show : {
+								aniShow : 'pop-in'
+							}
+						  });
+					});
+				}
+				//搜索
+				document.onkeydown = function(e) {
+					var ev = document.all ? window.event : e;
+					if (ev.keyCode == 13) {
+						getTopicList(true);
+					}
+				}
+
+				//打开帖子页
+				mui(".mui-table-view").on('tap', '.mui-table-view-cell', function() {
+
+					var url = $(this).find('a').attr("href");
+
+					mui.openWindow({
+						id : 'topic_page',
+						url : url,
+						show : {
+							aniShow : 'pop-in'
+						}
+					});
+				});
+			});
+		}(mui, document));
+		
+		function GetQueryString(name) {
+			var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+			var r = window.location.search.substr(1).match(reg);
+			if (r != null)
+				return decodeURIComponent(r[2]);
+			return null;
+		}
+		
+		function giveIntegration(here_user_id,my_user_id){
+			$.ajax({
+				url : "./GiveIntegration",
+				data : "{\"my_user_id\":\""+my_user_id+"\",\"here_user_id\":\""+here_user_id
+					+ "\",\"token\":\""+localStorage.getItem('$token')+"\"}",
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					if (data.result.indexOf('success')!=-1) {
+						var integration=parseInt(GetQueryString("user_integration"));
+						
+						$('#give_integration').html("送积分("+(integration+10)+")");
+					} else {
+						mui.toast(data.result);
+					}
+					localStorage.setItem('$token', data.token);
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>

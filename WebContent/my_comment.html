@@ -1,0 +1,516 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>my-回复</title>
+<meta name="viewport"
+	content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<!--标准mui.css-->
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+<style type="text/css">
+.mui-plus.mui-android header.mui-bar {
+	display: none;
+}
+
+.mui-plus.mui-android .mui-bar-nav ~.mui-content {
+	padding: 0;
+}
+</style>
+<!--App自定义的css-->
+		<style type="text/css">
+			.mui-preview-image.mui-fullscreen {
+				position: fixed;
+				z-index: 20;
+				background-color: #000;
+			}
+			.mui-preview-header,
+			.mui-preview-footer {
+				position: absolute;
+				width: 100%;
+				left: 0;
+				z-index: 10;
+			}
+			.mui-preview-header {
+				height: 44px;
+				top: 0;
+			}
+			.mui-preview-footer {
+				height: 50px;
+				bottom: 0px;
+			}
+			.mui-preview-header .mui-preview-indicator {
+				display: block;
+				line-height: 25px;
+				color: #fff;
+				text-align: center;
+				margin: 15px auto 4;
+				width: 70px;
+				background-color: rgba(0, 0, 0, 0.4);
+				border-radius: 12px;
+				font-size: 16px;
+			}
+			.mui-preview-image {
+				display: none;
+				-webkit-animation-duration: 0.5s;
+				animation-duration: 0.5s;
+				-webkit-animation-fill-mode: both;
+				animation-fill-mode: both;
+			}
+			.mui-preview-image.mui-preview-in {
+				-webkit-animation-name: fadeIn;
+				animation-name: fadeIn;
+			}
+			.mui-preview-image.mui-preview-out {
+				background: none;
+				-webkit-animation-name: fadeOut;
+				animation-name: fadeOut;
+			}
+			.mui-preview-image.mui-preview-out .mui-preview-header,
+			.mui-preview-image.mui-preview-out .mui-preview-footer {
+				display: none;
+			}
+			.mui-zoom-scroller {
+				position: absolute;
+				display: -webkit-box;
+				display: -webkit-flex;
+				display: flex;
+				-webkit-box-align: center;
+				-webkit-align-items: center;
+				align-items: center;
+				-webkit-box-pack: center;
+				-webkit-justify-content: center;
+				justify-content: center;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				-webkit-backface-visibility: hidden;
+			}
+			.mui-zoom {
+				-webkit-transform-style: preserve-3d;
+				transform-style: preserve-3d;
+			}
+			.mui-slider .mui-slider-group .mui-slider-item img {
+				width: auto;
+				height: auto;
+				max-width: 100%;
+				max-height: 100%;
+			}
+			.mui-android-4-1 .mui-slider .mui-slider-group .mui-slider-item img {
+				width: 100%;
+			}
+			.mui-android-4-1 .mui-slider.mui-preview-image .mui-slider-group .mui-slider-item {
+				display: inline-table;
+			}
+			.mui-android-4-1 .mui-slider.mui-preview-image .mui-zoom-scroller img {
+				display: table-cell;
+				vertical-align: middle;
+			}
+			.mui-preview-loading {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				top: 0;
+				left: 0;
+				display: none;
+			}
+			.mui-preview-loading.mui-active {
+				display: block;
+			}
+			.mui-preview-loading .mui-spinner-white {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				margin-left: -25px;
+				margin-top: -25px;
+				height: 50px;
+				width: 50px;
+			}
+			.mui-preview-image img.mui-transitioning {
+				-webkit-transition: -webkit-transform 0.5s ease, opacity 0.5s ease;
+				transition: transform 0.5s ease, opacity 0.5s ease;
+			}
+			@-webkit-keyframes fadeIn {
+				0% {
+					opacity: 0;
+				}
+				100% {
+					opacity: 1;
+				}
+			}
+			@keyframes fadeIn {
+				0% {
+					opacity: 0;
+				}
+				100% {
+					opacity: 1;
+				}
+			}
+			@-webkit-keyframes fadeOut {
+				0% {
+					opacity: 1;
+				}
+				100% {
+					opacity: 0;
+				}
+			}
+			@keyframes fadeOut {
+				0% {
+					opacity: 1;
+				}
+				100% {
+					opacity: 0;
+				}
+			}
+			p img {
+				max-width: 100%;
+				height: auto;
+			}
+		</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">my-回复</h1>
+	</header>
+	<div class="mui-content">
+		<div class="mui-content-padded" style="margin: 10px;">
+			<div class="mui-input-row mui-search">
+				<input id="comment_search" type="search" class="mui-input-clear"
+					placeholder="评论搜索" style="margin-bottom: 0px">
+			</div>
+		</div>
+		<!--下拉刷新容器-->
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper"
+			style="margin: 85px 0 0">
+			<div class="mui-scroll">
+				<div class="mui-card">
+					<div id="user_head_img" class="mui-card-header mui-card-media "
+						style="height: 80vw"></div>
+					<div class="mui-card-content">
+						<div class="mui-card-content-inner">
+							<p id="user_name" style="color: #333;"></p>
+							<p id="user_pets_name" ></p>
+							<p id="user_integration" style="color:#DB7093;"></p>
+						</div>
+					</div>
+				</div>
+				<!--评论列表-->
+				<div id="comment_list" style="margin-bottom: 35px;">
+					
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="./js/mui.min.js"></script>
+	<script src="./js/mui.zoom.js"></script>
+	<script src="./js/mui.previewimage.js"></script>
+	<script src="js/app.js"></script>
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script>
+		(function(mui, doc) {
+			mui.init({
+				pullRefresh : {
+					container : '#pullrefresh',
+					down : {
+						callback : pulldownRefresh,
+						auto : true
+					},
+					up : {
+						contentrefresh : '正在加载...',
+						callback : pullupRefresh
+					}
+				}
+			});
+
+			var pageIndex = 0;
+			/**
+			 * 下拉刷新具体业务实现
+			 */
+			function pulldownRefresh() {
+				getCommentList(true);
+			}
+
+			/**
+			 * 上拉加载具体业务实现
+			 */
+			function pullupRefresh() {
+				getCommentList(false);
+			}
+
+			function getCommentList(upOrDown) {
+				if (!upOrDown)
+					pageIndex++;
+				else
+					pageIndex = 1;
+				
+				var comment={
+						pageIndex:pageIndex,
+						pageCount:10,
+						user_id:app.getUser().user_id,
+						token:localStorage.getItem('$token')
+				};
+				
+				if($("#comment_search").val().length > 0)
+					comment.search_key=$("#comment_search").val();
+				
+				$.ajax({
+					url : "./GetCommentList",
+					data : JSON.stringify(comment),
+					type : "post",
+					beforeSend : function() {
+					},
+					error : function(data) {
+						mui.toast(data.responseText);
+					},
+					success : function(data) {
+						if (data.comment!=null&&data.comment.length > 0) {
+							var result = "";
+							var userInfo = app.getUser();
+							for (var i = 0; i < data.comment.length; i++) {
+								var comment_content = "<div class=\"mui-card-content-inner\"><p>" + data.comment[i].comment_content + "</div>";
+								for (var j = 1; j < 10; j++) {
+									if (data.comment[i]["comment_img" + j] != null)
+										comment_content += "<img style=\"width:100%\" src=\"" + data.comment[i]["comment_img" + j]
+												+ "\" data-preview-src data-preview-group=\"1\">";
+								}
+								result += "<div class=\"mui-card\" style=\"margin:10px 10px 4px 10px;border-top-right-radius:20px\">"
+										+ "<div href=\"./my_topic.html?user_id="
+										+ data.comment[i].user_id
+										+ "&user_head_img="
+										+ data.comment[i].user_head_img
+										+ "&user_name="
+										+ data.comment[i].user_name
+										+ "&user_pet_name="
+										+ data.comment[i].user_pet_name
+										+ "&user_integration="
+										+ data.comment[i].user_integration
+										+ "\" class=\"mui-card-header mui-card-media mui-card-link\">"
+										+ "<img src=\""+data.comment[i].user_head_img
+							+"\" /><div class=\"mui-media-body\">"
+										+ data.comment[i].user_name
+										+ "<p>发表于 "
+										+ data.comment[i].comment_create_time
+										+ "</p></div>"
+										+ "</div><div class=\"mui-card-content\">"
+										+ comment_content
+										+ "</div>"
+										+ "<div class=\"mui-card-footer\">"
+										+ "<a href=\""+data.comment[i].comment_id+","
+							+data.comment[i].star_count+"\" class=\"mui-card-link\" comment_star_type=\"1\">点赞</a> <a "
+							+"href=\""+data.comment[i].comment_id+","
+							+data.comment[i].user_name+"\" class=\"mui-card-link\">评论</a> <a "
+							+"href=\""+data.comment[i].comment_id+","
+							+data.comment[i].user_name+"\" class=\"mui-card-link\">私信</a></div></div>";
+								if (data.comment[i].sub_comment != null && data.comment[i].sub_comment.length > 0) {
+
+									result += "<div class=\"mui-card\" style=\"margin:0 10px 0;border-bottom-right-radius:20px\">" + "<div class=\"mui-card-content\">"
+											+ "<div class=\"mui-card-content-inner\" style=\"padding:8px\">";
+									for (var j = 0; j < data.comment[i].sub_comment.length; j++) {
+										result += "<a href=\"./my_topic.html?user_id="
+												+ data.comment[i].sub_comment[j].user_id
+												+ "&user_head_img="
+												+ data.comment[i].sub_comment[j].user_head_img
+												+ "&user_name="
+												+ data.comment[i].sub_comment[j].user_name
+												+ "&user_pet_name="
+												+ data.comment[i].sub_comment[j].user_pet_name
+												+ "&user_integration="
+												+ data.comment[i].sub_comment[j].user_integration
+												+ "\" class=\"mui-card-link\">"
+												+ data.comment[i].sub_comment[j].user_name
+												+ "</a>"
+												+ (data.comment[i].sub_comment[j].call_user_id != null ? "\t回复\t <a href=\"./my_topic.html?user_id="
+														+ data.comment[i].sub_comment[j].call_user_id + "&user_head_img=" + data.comment[i].sub_comment[j].call_user_head_img
+														+ "&user_name=" + data.comment[i].sub_comment[j].call_user_name + "&user_pet_name="
+														+ data.comment[i].sub_comment[j].call_user_pet_name + "&user_integration=" + data.comment[i].sub_comment[j].call_user_integration
+														+ "\" class=\"mui-card-link\">" + data.comment[i].sub_comment[j].call_user_name + "</a>" : "")
+												+ "：<a href=\"sub_comment," + data.comment[i].comment_id + "," + data.comment[i].sub_comment[j].user_name
+												+ "," + data.comment[i].sub_comment[j].user_id + "\" class=\"mui-card-link\">" + data.comment[i].sub_comment[j].comment_content
+												+ "</a><br/>";
+									}
+									result += "</div></div></div>";
+								}
+							}
+							if (upOrDown)
+								$("#comment_list").html(result);
+							else
+								$("#comment_list").append(result);
+							
+						
+							mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+							mui('#pullrefresh').pullRefresh().endPullupToRefresh(data.length < 10); //参数为true代表没有更多数据了。
+							
+						} else {
+							mui.toast(data.result);
+							mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+							mui('#pullrefresh').pullRefresh().endPullupToRefresh(true);
+						}
+						if(data.result.indexOf("token无效")!=-1){
+							setInterval(function() {
+								mui.openWindow({
+									url : 'login.html',
+									id : 'login',
+									show : {
+										aniShow : 'pop-in'
+									}
+								});
+							}, 2000);
+						}
+						localStorage.setItem('$token', data.token);
+						$('.mui-card-content').each(function(){
+							if($(this).children('img').length<=1){
+								$(this).find('img').removeAttr('style');
+								$(this).find('img').css('width','100%');
+								return;
+							}
+								
+							$(this).find('img').css('width',$(document).width()/3.33333);
+							$(this).find('img').css('height',$(document).width()/3.33333);
+							$(this).find('img').css('object-fit','cover');
+						});
+					}
+				});
+			}
+
+			mui.ready(function() {
+				var user = app.getUser();
+				if (user.user_name == null) {
+					mui.toast('登录信息不存在，请重新登录');
+					setInterval(function() {
+						mui.openWindow({
+							url : 'login.html',
+							id : 'login',
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+					}, 2000);
+					return;
+				}
+				$('#user_head_img').css("background-image", "url(" + user.user_head_img + ")");
+				$('#user_name').html("用户名："+user.user_name);
+				$('#user_pets_name').html("昵称："+user.user_pet_name);
+				$('#user_integration').html("积分："+user.user_integration);
+				$("title").html(user.user_pet_name==null?user.user_name:user.user_pet_name + "\t-\t回复");
+				$(".mui-title").html(user.user_pet_name==null?user.user_name:user.user_pet_name + "\t-\t回复");
+				
+				//搜索
+				document.onkeydown = function(e) {
+					var ev = document.all ? window.event : e;
+					if (ev.keyCode == 13) {
+						getCommentList(true);
+					}
+				}
+
+				
+				//打开回复页
+				mui("#comment_list").on('tap','.mui-card-link',function(){
+					if ($(this).attr("href").indexOf('my_topic.html') != -1) {
+						mui.openWindow({
+							id : "my_topic",
+							url : $(this).attr("href"),
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+						return;
+					} else if ($(this).attr("href").indexOf('sub_comment') != -1) {
+						var url=$(this).attr("href");
+						//打开带输入框的弹窗
+						var btnArray = [ '确定', '取消' ];
+						mui.prompt('回复：' + url.split(',')[2], '', '回复TA', btnArray, function(e) {
+							if (e.index == 0) {
+								//开始回复评论
+								commentSub(url.split(',')[1],url.split(',')[3], e.value);
+							} else {
+								//取消评论
+							}
+						})
+						return;
+					}
+					  var commentInfo = $(this).attr("href");
+					  if($(this).html().indexOf('点赞')!=-1){
+							commentStar(this,commentInfo);
+					  }
+					  switch ($(this).html()) {
+							case "评论":
+								//打开带输入框的弹窗
+								var btnArray = [ '确定', '取消' ];
+								mui.prompt('回复：' + commentInfo.split(',')[1], '', '回复TA', btnArray, function(e) {
+									if (e.index == 0) {
+										//开始回复评论
+										commentSub(commentInfo.split(',')[0], null, e.value);
+									} else {
+										//取消评论
+									}
+								})
+								break;
+							case "私信":
+								mui.toast("请不要和自己私信哦！");
+								break;
+						}
+					  
+				});
+			});
+		}(mui, document));
+	</script>
+	<script type="text/javascript">
+		mui.previewImage();
+		
+		function commentStar(comment_a,commentInfo){
+			var starCount = parseInt(commentInfo.split(',')[1]);
+			var comment_star_type=$(comment_a).attr("comment_star_type");
+			$.ajax({
+				url : "./StarComment",
+				data : "{\"comment_id\": \"" + commentInfo.split(',')[0] + "\", \"user_id\": \"" + app.getUser().user_id + "\""
+						+ (comment_star_type == null ? "" : ",\"star_type\":\"" + comment_star_type + "\"") + "}",
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					if (comment_star_type != null)
+						mui.toast(data.star_type == 0 ? "已取消点赞" : "已点赞");
+					comment_star_type = (data.star_type == 0 ? 1 : 0);
+					$(comment_a).attr("comment_star_type",comment_star_type);
+					starCount = data.star_type == 0 ? starCount : starCount+1;
+					$(comment_a).html(comment_star_type == 1 ? "点赞(" + starCount + ")" : "取消点赞(" + starCount + ")");
+				}
+			});
+		}
+		function commentSub(comment_id, call_user_id, comment_content) {
+			
+			$.ajax({
+				url : "./CreateSubComment",
+				data : "{\"comment_id\":\"" + comment_id + "\"," 
+					+ (call_user_id == null ? "" : "\"call_user_id\":\"" + call_user_id+"\",") 
+					+ "\"comment_content\":\""+encodeURIComponent(comment_content)+"\",\"user_id\":\""+app.getUser().user_id+"\"}",
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					mui.toast(data.result);
+					window.location.reload();
+				}
+			});
+		
+	}
+	</script>
+</body>
+
+</html>

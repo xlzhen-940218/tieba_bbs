@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>JAVA-贴吧</title>
+<meta name="viewport"
+	content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<!--标准mui.css-->
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+<style type="text/css">
+.mui-plus.mui-android header.mui-bar {
+	display: none;
+}
+
+.mui-plus.mui-android .mui-bar-nav ~.mui-content {
+	padding: 0;
+}
+</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">JAVA-贴吧</h1>
+		<button id='create_topic'
+			class="mui-btn mui-btn-blue mui-btn-link mui-pull-right">发帖子</button>
+	</header>
+	<div class="mui-content">
+		<div class="mui-content-padded" style="margin: 10px;">
+			<div class="mui-input-row mui-search">
+				<input id="topic_search" type="search" class="mui-input-clear"
+					placeholder="贴子搜索" style="margin-bottom: 0px">
+			</div>
+		</div>
+		<!--下拉刷新容器-->
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper"
+			style="margin: 85px 0 0">
+			<div class="mui-scroll">
+				<div class="mui-card">
+					<div id="tieba_cover" class="mui-card-header mui-card-media"
+						style="height: 80vw;"></div>
+					<div class="mui-card-content">
+						<div class="mui-card-content-inner">
+							<p id="tieba_name"></p>
+							<p id="tieba_description" style="color: #333;"></p>
+						</div>
+					</div>
+					<div class="mui-card-footer">
+						<a id="attention" class="mui-card-link">关注(0)</a> <a id="sign"
+							class="mui-card-link">签到</a>
+					</div>
+				</div>
+				<!--帖子列表-->
+				<div class="mui-card" style="margin-bottom: 35px;">
+					<ul id="tab_list" class="mui-table-view">
+
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="./js/mui.min.js"></script>
+	<script src="js/app.js"></script>
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script>
+		(function(mui, doc) {
+			mui.init({
+				pullRefresh : {
+					container : '#pullrefresh',
+					down : {
+						callback : pulldownRefresh,
+						auto : true
+					},
+					up : {
+						contentrefresh : '正在加载...',
+						callback : pullupRefresh
+					}
+				}
+			});
+
+			var pageIndex = 0;
+			/**
+			 * 下拉刷新具体业务实现
+			 */
+			function pulldownRefresh() {
+				getTopicList(true);
+			}
+
+			/**
+			 * 上拉加载具体业务实现
+			 */
+			function pullupRefresh() {
+				getTopicList(false);
+			}
+
+			function getTopicList(upOrDown) {
+				if (!upOrDown)
+					pageIndex++;
+				else
+					pageIndex = 1;
+
+				var topic={
+						pageIndex:pageIndex,
+						pageCount:10,
+						user_id:app.getUser().user_id,
+						token:localStorage.getItem('$token'),
+						tieba_id:GetQueryString("tieba_id")
+				};
+				
+				if($("#topic_search").val().length > 0)
+					topic.search_key=$("#topic_search").val();
+
+				$.ajax({
+							url : "./GetTopic",
+							data : JSON.stringify(topic),
+							type : "post",
+							beforeSend : function() {
+							},
+							error : function(data) {
+								mui.toast(data.responseText);
+							},
+							success : function(data) {
+								if (data.topic!=null&&data.topic.length > 0) {
+									var result = "";
+
+									for (var i = 0; i < data.topic.length; i++) {
+										
+										localStorage.setItem('$topic_content_id_'+data.topic[i].topic_id,data.topic[i].topic_content);
+										localStorage.setItem('$topic_title_id_'+data.topic[i].topic_id,data.topic[i].topic_title);
+										
+										var topic_href = "./topic_page.html?topic_id=" + data.topic[i].topic_id  + "&user_id=" + data.topic[i].user_id
+												+ "&user_head_img=" + data.topic[i].user_head_img + "&user_name=" + data.topic[i].user_name 
+												+"&user_pet_name="+ data.topic[i].user_pet_name+"&user_integration=" +data.topic[i].user_integration
+												+ "&topic_create_time=" + data.topic[i].topic_create_time
+												+ "&star_count=" + data.topic[i].star_count;
+										for (var j = 1; j < 10; j++) {
+											if (data.topic[i]["topic_img" + j] != null) {
+												topic_href += "&topic_img" + j + "=" + data.topic[i]["topic_img" + j];
+											}
+										}
+										
+										result += "<li class=\"mui-table-view-cell mui-media\"><a "
+								+ "href=\""+topic_href+"\"> <img class=\"mui-media-object mui-pull-right\""+
+							"src=\""+data.topic[i].topic_img1+"\">"
+												+ "<div class=\"mui-media-body\">" + data.topic[i].topic_title + "<p>" + data.topic[i].topic_content + "</p></div></a></li>";
+									}
+									if (upOrDown)
+										$("#tab_list").html(result);
+									else
+										$("#tab_list").append(result);
+
+									mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+									mui('#pullrefresh').pullRefresh().endPullupToRefresh(data.length < 10); //参数为true代表没有更多数据了。
+
+								} else {
+									mui.toast(data.result);
+									mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+									mui('#pullrefresh').pullRefresh().endPullupToRefresh(true);
+								}
+								if(data.result!=null&&data.result.indexOf("token无效")!=-1){
+									setInterval(function() {
+										mui.openWindow({
+											url : 'login.html',
+											id : 'login',
+											show : {
+												aniShow : 'pop-in'
+											}
+										});
+									}, 2000);
+								}
+								localStorage.setItem('$token', data.token);
+							}
+						});
+			}
+
+			mui.ready(function() {
+				var user = app.getUser();
+				if (user.user_name == null) {
+					mui.toast('登录信息不存在，请重新登录');
+					setInterval(function() {
+						mui.openWindow({
+							url : 'login.html',
+							id : 'login',
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+					}, 2000);
+					return;
+				}
+				var tieba_name = GetQueryString("tieba_name");
+				$('#tieba_cover').css("background-image", "url(" + GetQueryString("tieba_cover") + ")");
+				$('#tieba_name').html(tieba_name);
+				$('#tieba_description').html(GetQueryString("tieba_description"));
+				$('#attention').html("关注(" + GetQueryString("tieba_attention") + ")");
+				$("title").html(tieba_name + "\t-\t贴吧");
+				$(".mui-title").html((tieba_name.length > 8 ? tieba_name.substring(0, 8) + "..." : tieba_name) + "\t-\t贴吧");
+				var attentionInfo = {
+					tieba_id : GetQueryString("tieba_id"),
+					user_id : app.getUser().user_id
+				};
+				attention(GetQueryString("tieba_attention"), attentionInfo);
+				//搜索
+				document.onkeydown = function(e) {
+					var ev = document.all ? window.event : e;
+					if (ev.keyCode == 13) {
+						getTopicList(true);
+					}
+				}
+				$("#attention").on("tap", function() {
+
+					attention(GetQueryString("tieba_attention"), attentionInfo);
+				});
+				$("#sign").one("tap", function() {
+
+					sign(attentionInfo);
+				});
+
+				//打开帖子页
+				mui(".mui-table-view").on('tap', '.mui-table-view-cell', function() {
+
+					var url = $(this).find('a').attr("href");
+
+					mui.openWindow({
+						id : 'topic_page',
+						url : url,
+						show : {
+							aniShow : 'pop-in'
+						}
+					});
+				});
+
+				var createTopic = doc.getElementById('create_topic');
+				createTopic.addEventListener('tap', function(event) {
+					mui.openWindow({
+						"id" : 'create_topic',
+						"url" : "create_topic.html?tieba_id=" + attentionInfo.tieba_id + "&tieba_name=" + tieba_name,
+						show : {
+							aniShow : 'pop-in'
+						},
+						styles : {
+							popGesture : 'hide'
+						},
+						waiting : {
+							autoShow : false
+						}
+					});
+				});
+			});
+		}(mui, document));
+	</script>
+	<script type="text/javascript">
+		var attentionCount;
+		var attention_type;
+		function attention(tieba_attention, attentionInfo) {
+			var attentionCount = parseInt(tieba_attention);
+			$.ajax({
+				url : "./AttentionTieba",
+				data : "{\"tieba_id\": \"" + attentionInfo.tieba_id + "\", \"user_id\": \"" + app.getUser().user_id + "\""
+						+ (attention_type == null ? "" : ",\"attention_type\":\"" + attention_type + "\"") + "}",
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					if (attention_type != null)
+						mui.toast(data.attention_type == 0 ? "已取消关注" : "已关注");
+					attention_type = (data.attention_type == 0 ? 1 : 0);
+					attentionCount = data.attention_type == 0 ? attentionCount : attentionCount + 1;
+					$('#attention').html(data.attention_type == 0 ? "关注(" + attentionCount + ")" : "取消关注(" + attentionCount + ")");
+				}
+			});
+		}
+
+		function GetQueryString(name) {
+			var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+			var r = window.location.search.substr(1).match(reg);
+			if (r != null)
+				return decodeURIComponent(r[2]);
+			return null;
+		}
+		function sign(attentionInfo) {
+			var sign={
+					tieba_id:attentionInfo.tieba_id,
+					user_id:attentionInfo.user_id,
+					token:localStorage.getItem('$token')
+			};
+			$.ajax({
+				url : "./SignTieba",
+				data : JSON.stringify(sign),
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					mui.toast(data.sign.today_sign_type == 0 ? "未签到" : "今日已签到，积分+5");
+					$('#sign').html(data.sign.today_sign_type == 0 ? "未签到" : "今日已签到");
+					
+					localStorage.setItem('$token', data.token);
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+<title>创建贴吧</title>
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<link rel="stylesheet" type="text/css" href="./css/feedback-page.css" />
+<style>
+.area {
+	margin: 20px auto 0px auto;
+}
+
+.mui-input-group:first-child {
+	margin-top: 20px;
+}
+
+.mui-input-group label {
+	width: 32%;
+}
+
+.mui-input-row label ~input, .mui-input-row label ~select,
+	.mui-input-row label ~textarea {
+	width: 68%;
+}
+
+.mui-checkbox input[type=checkbox], .mui-radio input[type=radio] {
+	top: 6px;
+}
+
+.mui-content-padded {
+	margin-top: 25px;
+}
+
+.mui-btn {
+	padding: 10px;
+}
+
+.mui-input-row label ~input, .mui-input-row label ~select,
+	.mui-input-row label ~textarea {
+	margin-top: 1px;
+}
+</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">创建贴吧</h1>
+	</header>
+	<div class="mui-content">
+		<form class="mui-input-group">
+			<div class="mui-input-row">
+				<label>贴吧名称</label> <input id='name' type="text"
+					class="mui-input-clear mui-input" placeholder="请输入贴吧名称">
+			</div>
+			<div class="mui-input-row" style="height: 140px">
+				<label>贴吧介绍</label>
+				<div class="row">
+					<textarea id='description' class="mui-input-clear question"
+						placeholder="请描述该贴吧的简短介绍！最少6个字"></textarea>
+				</div>
+			</div>
+			<div id="feedback" class="mui-page feedback">
+				<div class="mui-page-content">
+					<div class="mui-input-row" style="height: 140px">
+						<label>贴吧图片</label>
+						<div id='image-list' class="row image-list"></div>
+
+					</div>
+				</div>
+			</div>
+		</form>
+		<div class="mui-content-padded">
+			<button id='createTieba'
+				class="mui-btn mui-btn-block mui-btn-primary">提交</button>
+		</div>
+	</div>
+	<script src="js/mui.min.js"></script>
+	<script src="js/app.js"></script>
+	<script src='./js/feedback.js'></script>
+	<script src="./js/image-compressor.min.js"></script>
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script>
+		(function(mui, doc) {
+			var tiebaCache;
+			mui.init();
+			mui.ready(function() {
+				var userInfo = app.getUser();
+				if (userInfo.user_name == null) {
+					mui.toast('登录信息不存在，请重新登录');
+					setInterval(function() {
+						mui.openWindow({
+							url : 'login.html',
+							id : 'login',
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+					}, 2000);
+					return;
+				}
+				
+				var tieba_name=localStorage.getItem('$tieba-name');
+				$('#name').val(tieba_name);
+				$('#name').bind("input propertychange",function(){
+					localStorage.setItem('$tieba-name',$('#name').val());
+				});
+				
+				var tieba_description=localStorage.getItem('$tieba-description');
+				$('#description').val(tieba_description);
+				$('#description').bind("input propertychange",function(){
+					localStorage.setItem('$tieba-description',$('#description').val());
+				});
+				
+				var createTieba = doc.getElementById('createTieba');
+				
+				createTieba.addEventListener('tap', function() {
+					
+					if(localStorage.getItem('$tieba-image-1')!=null){
+						var tiebaInfo = {
+								tieba_name : localStorage.getItem('$tieba-name'),
+								tieba_description : localStorage.getItem('$tieba-description'),
+								user_id:app.getUser().user_id,
+								tieba_cover:JSON.parse(localStorage.getItem('$tieba-image-1')).url
+						}
+						create(tiebaInfo);
+						return;
+					}else{
+						mui.toast('请上传图片！');
+					}
+				}, false);
+			});
+		}(mui, document));
+	</script>
+	<script type="text/javascript">
+		function create(tiebaInfo) {
+			tiebaInfo.token=localStorage.getItem('$token');
+			$.ajax({
+				url : "./CreateTieba",
+				data : JSON.stringify(tiebaInfo),
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					localStorage.removeItem('$tieba-image-1');
+					localStorage.removeItem('$tieba-title');
+					localStorage.removeItem('$tieba-content');
+					mui.toast(data.result);
+					if(data.result.indexOf("token无效")!=-1){
+						setInterval(function() {
+							mui.openWindow({
+								url : 'login.html',
+								id : 'login',
+								show : {
+									aniShow : 'pop-in'
+								}
+							});
+						}, 2000);
+					}
+					localStorage.setItem('$token', data.token);
+					
+					setInterval(function() {
+						mui.back();
+					}, 500);
+					
+				}
+			});
+		}
+	</script>
+	<script type="text/javascript">
+		function compressImg(file,callback){
+			mui.toast("为了缩短上传过程，正在压缩图片...");
+			new Compressor(file, {
+				quality: 0.4,
+			    maxWidth:1400,
+			    maxHeight:1400,
+			    success(result) {
+			    	const formData = new FormData();
+				    formData.append('file', result, result.name);
+				    uploadPic(formData,result,callback); 
+			    },
+			    error(err) {
+			      console.log(err.message);
+			    },
+			  });
+		}
+		function uploadPic(formData,result,callback) {
+			mui.toast('图片上传中...');
+			$.ajax({
+				url: "./UploadFiles",
+				type: "POST",
+				data: formData,
+				contentType: false,
+				processData: false,
+				success: function(data) {
+					data = JSON.parse(data);
+					if (data.message.indexOf("error") == -1) {
+						mui.toast("上传成功！");
+						callback(result,data.message);
+					} else {
+						mui.toast(data.message);
+					}
+				},
+				error: function() {
+					mui.toast("上传失败！");
+				}
+			});
+		}
+	</script>
+	<script type="text/javascript">
+		(function(mui, window, document, undefined) {
+			mui.init();
+			var get = function(id) {
+				return document.getElementById(id);
+			};
+			var qsa = function(sel) {
+				return [].slice.call(document.querySelectorAll(sel));
+			};
+			var ui = {
+				question: get('question'),
+				contact: get('contact'),
+				imageList: get('image-list'),
+				submit: get('submit')
+			};
+			ui.clearForm = function() {
+				ui.question.value = '';
+				ui.contact.value = '';
+				ui.imageList.innerHTML = '';
+				ui.newPlaceholder();
+			};
+			ui.getFileInputArray = function() {
+				return [].slice.call(ui.imageList.querySelectorAll('input[type="file"]'));
+			};
+			ui.getFileInputIdArray = function() {
+				var fileInputArray = ui.getFileInputArray();
+				var idArray = [];
+				fileInputArray.forEach(function(fileInput) {
+					if (fileInput.value != '') {
+						idArray.push(fileInput.getAttribute('id'));
+					}
+				});
+				return idArray;
+			};
+			var imageIndexIdNum = 0;
+			ui.newPlaceholder = function() {
+				if(imageIndexIdNum>0){
+					return;
+				}
+				var fileInputArray = ui.getFileInputArray();
+				if (fileInputArray &&
+					fileInputArray.length > 0 &&
+					fileInputArray[fileInputArray.length - 1].parentNode.classList.contains('space')) {
+					return;
+				}
+				imageIndexIdNum++;
+				var placeholder = document.createElement('div');
+				placeholder.setAttribute('class', 'image-item space');
+				var closeButton = document.createElement('div');
+				closeButton.setAttribute('class', 'image-close');
+				closeButton.innerHTML = 'X';
+				closeButton.addEventListener('click', function(event) {
+					event.stopPropagation();
+					event.cancelBubble = true;
+					setTimeout(function() {
+						if(imageIndexIdNum<=1)
+							imageIndexIdNum=0;
+						localStorage.removeItem('$tieba-image-'+(imageIndexIdNum-1));
+						ui.newPlaceholder();
+						ui.imageList.removeChild(placeholder);
+						
+					}, 0);
+					
+					return false;
+				}, false);
+				var fileInput = document.createElement('input');
+				fileInput.setAttribute('type', 'file');
+				fileInput.setAttribute('accept', 'image/*');
+				fileInput.setAttribute('id', 'image-' + imageIndexIdNum);
+				
+				fileInput.addEventListener('change', function(event) {
+					var file = fileInput.files[0];
+					if (file) {
+						compressImg(file,function(result,url){
+							var reader = new FileReader();
+							reader.onload = function() {
+								//处理 android 4.1 兼容问题
+								var base64 = reader.result.split(',')[1];
+								var dataUrl = 'data:image/png;base64,' + base64;
+								//
+								placeholder.style.backgroundImage = 'url(' + dataUrl + ')';
+								var image_data =  {
+										data:base64,
+										index:imageIndexIdNum,
+										url:url
+								};
+								
+								localStorage.setItem('$tieba-image-' + imageIndexIdNum, JSON.stringify(image_data));
+							}
+							reader.readAsDataURL(result);
+							placeholder.classList.remove('space');
+							ui.newPlaceholder();
+							
+						});
+						
+					}
+				}, false);
+				
+				placeholder.appendChild(closeButton);
+				placeholder.appendChild(fileInput);
+				ui.imageList.appendChild(placeholder);
+				if(localStorage.getItem('$tieba-image-' + imageIndexIdNum)!=null){
+					mui.toast('正在从灾难中恢复待发送和上传数据');
+					var image=localStorage.getItem('$tieba-image-' + imageIndexIdNum);
+					image=JSON.parse(image);
+					var dataUrl = 'data:image/png;base64,' + image.data;
+					console.log(image.url);
+					placeholder.style.backgroundImage = 'url(' + dataUrl + ')';
+					placeholder.classList.remove('space');
+					ui.newPlaceholder();
+				}
+			};
+			ui.newPlaceholder();
+		})(mui, window, document, undefined);
+	</script>
+</body>
+
+</html>

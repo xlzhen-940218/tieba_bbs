@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+<title>私信列表</title>
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+
+<style>
+ul {
+	font-size: 14px;
+	color: #8f8f94;
+}
+
+.mui-btn {
+	padding: 10px;
+}
+</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav" style="padding-right: 15px;">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">私信列表</h1>
+		<button id='add_chat' class=" mui-pull-right mui-btn-link">找人聊天</button>
+	</header>
+	<div class="mui-content">
+		<div class="mui-content-padded" style="margin: 10px;">
+			<div class="mui-input-row mui-search">
+				<input id="user_search" type="search" class="mui-input-clear" placeholder="私信列表用户搜索"
+					style="margin-bottom: 0px">
+			</div>
+		</div>
+		<!--下拉刷新容器-->
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper" style="margin: 100px 0 0">
+			<div class="mui-scroll">
+				<!--数据列表-->
+				<ul id="tab_list" class="mui-table-view mui-table-view-chevron">
+
+				</ul>
+			</div>
+		</div>
+	</div>
+	<script src="js/mui.min.js"></script>
+	<script src="js/app.js"></script>
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script>
+		(function(mui, doc) {
+			mui.init({
+				pullRefresh : {
+					container : '#pullrefresh',
+					down : {
+						callback : pulldownRefresh
+					},
+					up : {
+						contentrefresh : '正在加载...',
+						callback : pullupRefresh
+					}
+				}
+			});
+			var pageIndex = 0;
+			/**
+			 * 下拉刷新具体业务实现
+			 */
+			function pulldownRefresh() {
+				getChatList(true);
+			}
+			
+			/**
+			 * 上拉加载具体业务实现
+			 */
+			function pullupRefresh() {
+				getChatList(false);
+			}
+			
+			function getChatList(upOrDown){
+				
+				if(!upOrDown)
+					pageIndex++;
+				else
+					pageIndex=1;
+				
+				var users={
+						pageIndex:pageIndex,
+						pageCount:10,
+						user_id:app.getUser().user_id,
+						token:localStorage.getItem('$token')
+				};
+				
+				if($("#user_search").val().length > 0)
+					users.search_key=$("#user_search").val();
+				
+				$.ajax({
+					url : "./GetChatList",
+					data : JSON.stringify(users),
+					type : "post",
+					beforeSend : function() {
+					},
+					error : function(data) {
+						mui.toast(data.responseText);
+					},
+					success : function(data) {
+						if (data.users!=null&&data.users.length>0) {
+							$("#user_search").val('');
+							var result="";
+							var userInfo = app.getUser();
+							for (var i = 0; i < data.users.length; i++) {
+								result+= "<li class=\"mui-table-view-cell mui-media\">"+
+								"<a href=\"./chat_message.html?to_user_head_img="+data.users[i].user_head_img
+								+"&to_user_id="+data.users[i].user_id
+								+"&to_user_name="+data.users[i].user_name
+								+"&chat_id="+data.users[i].chat_id
+								+"\" class=\"mui-navigate-right mui-card-link\"> <img"+
+								" class=\"mui-media-object mui-pull-left\" style=\"width:3em;height:3em;object-fit: cover;max-width:3em;\" src=\""+data.users[i].user_head_img+"\">"
+									+ "<div class=\"mui-media-body\">" + data.users[i].user_name + "<p class=\"mui-ellipsis\" " 
+									+ (data.users[i].message_content==null?">没有任何消息":"style=\"color:#ff0000;font-size:1em\">："
+									+(data.users[i].message_content.indexOf('http://')!=-1
+											&&(data.users[i].message_content.toLowerCase().indexOf('.jpg')!=-1
+											||data.users[i].message_content.toLowerCase().indexOf('.png')!=-1)?"[图片]":data.users[i].message_content)) + "</p></div></a></li>";
+							}
+							
+							if(upOrDown)
+								$("#tab_list").html(result);
+							else
+								$("#tab_list").append(result);
+							
+							mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+							mui('#pullrefresh').pullRefresh().endPullupToRefresh(data.length<10); //参数为true代表没有更多数据了。
+						} else {
+							mui.toast(data.result);
+							if(data.result.indexOf("token无效")!=-1){
+								setInterval(function() {
+									mui.openWindow({
+										url : 'login.html',
+										id : 'login',
+										show : {
+											aniShow : 'pop-in'
+										}
+									});
+								}, 2000);
+							}
+							mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+							mui('#pullrefresh').pullRefresh().endPullupToRefresh(true);
+						}
+						localStorage.setItem('$token', data.token);
+					}
+				});
+			}
+			mui(".mui-table-view").on('tap','.mui-card-link',function(){
+				  
+				  var url = $(this).attr("href");
+				  mui.openWindow({
+				    id:'chat_message',
+				    url:url,
+				    show : {
+						aniShow : 'pop-in'
+					}
+				  });
+				});
+			var settings = app.getSettings();
+			mui.ready(function() {
+				mui('#pullrefresh').pullRefresh().pullupLoading();
+				var userInfo = app.getUser();
+				if (userInfo.user_name == null) {
+					mui.toast('登录信息不存在，请重新登录');
+					setInterval(function() {
+						mui.openWindow({
+							url : 'login.html',
+							id : 'login',
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+					}, 2000);
+					return;
+				}
+				
+				//搜索
+				document.onkeydown = function(e) {
+					var ev = document.all ? window.event : e;
+					if (ev.keyCode == 13) {
+						getChatList(true);
+					}
+				}
+				//设置
+				var add_chat = doc.getElementById('add_chat');
+				add_chat.addEventListener('tap', function(event) {
+					mui.openWindow({
+						"id" : 'add_chat',
+						"url" : 'add_chat.html',
+						show : {
+							aniShow : 'pop-in'
+						},
+						styles : {
+							popGesture : 'hide'
+						},
+						waiting : {
+							autoShow : false
+						}
+					});
+				});
+				
+			});
+		}(mui, document));
+	</script>
+</body>
+
+</html>

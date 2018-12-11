@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+<title>更改用户信息</title>
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<link rel="stylesheet" type="text/css" href="./css/feedback-page.css" />
+<style>
+.area {
+	margin: 20px auto 0px auto;
+}
+
+.mui-input-group:first-child {
+	margin-top: 20px;
+}
+
+.mui-input-group label {
+	width: 32%;
+}
+
+.mui-input-row label ~input, .mui-input-row label ~select,
+	.mui-input-row label ~textarea {
+	width: 68%;
+}
+
+.mui-checkbox input[type=checkbox], .mui-radio input[type=radio] {
+	top: 6px;
+}
+
+.mui-content-padded {
+	margin-top: 25px;
+}
+
+.mui-btn {
+	padding: 10px;
+}
+
+.mui-input-row label ~input, .mui-input-row label ~select,
+	.mui-input-row label ~textarea {
+	margin-top: 1px;
+}
+</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">更改用户信息</h1>
+	</header>
+	<div class="mui-content">
+		<form class="mui-input-group">
+			<div class="mui-input-row">
+				<label>我的昵称</label> <input id='pets' type="text"
+					class="mui-input-clear mui-input" placeholder="请输入新的昵称，最少2字">
+			</div>
+			<div class="mui-input-row">
+				<label>邮箱账号</label> <input id='email' type="email"
+					class="mui-input-clear mui-input" placeholder="请输入邮箱">
+			</div>
+			<div id="feedback" class="mui-page feedback">
+				<div class="mui-page-content">
+					<div class="mui-input-row" style="height: 160px">
+						<label>新的头像</label>
+						<div id='image-list' class="row image-list" style="height: 160px"></div>
+
+					</div>
+				</div>
+			</div>
+		</form>
+		<div class="mui-content-padded">
+			<button id='changeUserInfo'
+				class="mui-btn mui-btn-block mui-btn-primary">更改用户信息</button>
+		</div>
+	</div>
+	<script src="js/mui.min.js"></script>
+	<script src="js/app.js"></script>
+	<script src='./js/feedback.js'></script>
+	<script src="./js/feedback-page.js"></script>
+	<script src="./js/image-compressor.min.js"></script>
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script>
+		(function(mui, doc) {
+			mui.init();
+			mui.ready(function() {
+				var userInfo=app.getUser();
+				if (userInfo.user_name == null) {
+					mui.toast('登录信息不存在，请重新登录');
+					setInterval(function() {
+						mui.openWindow({
+							url : 'login.html',
+							id : 'login',
+							show : {
+								aniShow : 'pop-in'
+							}
+						});
+					}, 2000);
+					return;
+				}
+				$('#pets').val(app.getUser().user_pet_name);
+				$('#email').val(app.getUser().user_email);
+				
+				$('#pets').bind('input propertychange', function() {
+					userInfo.user_pet_name=$(this).val();
+				});
+				$('#email').bind('input propertychange', function() {
+					userInfo.user_email=$(this).val();
+				});
+				
+				var changeUserInfo = doc.getElementById('changeUserInfo');
+				
+				changeUserInfo.addEventListener('tap', function() {
+					
+					if(doc.getElementById('image-1').files.length>0){
+						compressImg(userInfo);
+						return;
+					}else{
+						//不更改头像
+						app.userCheck(userInfo, function(err, info) {
+								if (err) {
+									mui.toast(err);
+									return;
+								}
+								create(userInfo);
+							});
+					}
+				}, false);
+			});
+		}(mui, document));
+	</script>
+	<script type="text/javascript">
+		function create(userInfo) {
+			userInfo.token=localStorage.getItem('$token');
+			$.ajax({
+				url : "./ChangeUserInfo",
+				data : JSON.stringify(userInfo),
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					mui.toast(data.result);
+					if(data.result.indexOf("token无效")!=-1){
+						setInterval(function() {
+							mui.openWindow({
+								url : 'login.html',
+								id : 'login',
+								show : {
+									aniShow : 'pop-in'
+								}
+							});
+						}, 2000);
+					}
+					localStorage.setItem('$token', data.token);
+					setInterval(function() {
+						mui.back();
+					}, 500);
+				}
+			});
+		}
+	</script>
+	<script type="text/javascript">
+			var imgPath = null;
+			function compressImg(userInfo){
+				mui.toast("为了缩短上传过程，正在压缩图片...");
+				new Compressor(document.getElementById("image-1").files[0], {
+					quality: 0.4,
+				    maxWidth:1400,
+				    maxHeight:1400,
+				    success(result) {
+				    	const formData = new FormData();
+				    	
+					      formData.append('file', result, result.name);
+					      uploadPic(userInfo,formData);
+				    },
+				    error(err) {
+				      console.log(err.message);
+				    },
+				  });
+			}
+			function uploadPic(userInfo,formData) {
+				mui.toast('头像图片上传中...');
+				$.ajax({
+					url: "./UploadFiles",
+					type: "POST",
+					data: formData,
+					contentType: false,
+					processData: false,
+					success: function(data) {
+						data = JSON.parse(data);
+						if (data.message.indexOf("error") == -1) {
+							userInfo.user_head_img = data.message;
+							mui.toast("上传成功！");
+							
+							app.userCheck(userInfo, function(err, info) {
+								if (err) {
+									mui.toast(err);
+									return;
+								}
+								create(userInfo);
+							});
+						} else {
+							mui.toast(data.message);
+						}
+					},
+					error: function() {
+						mui.toast("上传失败！");
+					}
+				});
+			}
+	</script>
+</body>
+
+</html>
