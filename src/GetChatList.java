@@ -85,7 +85,9 @@ public class GetChatList extends HttpServlet {
 					+ "on (users.user_id=chat.user_id or users.user_id=chat.friend_id) "
 					+ (search_key == null ? "" : " and users.user_name like '%" + search_key + "%' ")
 					+ " where chat.user_id=" + jsonObject.getString("user_id") + " or chat.friend_id="
-					+ jsonObject.getString("user_id") + ";";
+					+ jsonObject.getString("user_id") + " limit "
+					+ (jsonObject.getIntValue("pageIndex") - 1) * jsonObject.getIntValue("pageCount") + ","
+					+ jsonObject.getIntValue("pageCount") + ";";
 			log(sql);
 			rs = stmt.executeQuery(sql);
 
