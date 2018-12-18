@@ -58,8 +58,8 @@ public class ForgetUser extends HttpServlet {
 			String json = reader.readLine();
 			reader.close();
 			JSONObject jsonObject = JSONObject.parseObject(json);
-			if (jsonObject.getString("user_name").length() == 0 || jsonObject.getString("user_email").length() == 0) {
-				throw new Exception("user_name or user_email failed");
+			if (jsonObject.getString("user_email").length() == 0) {
+				throw new Exception("user_email failed");
 			}
 
 			Class.forName("com.mysql.cj.jdbc.Driver");
@@ -69,8 +69,8 @@ public class ForgetUser extends HttpServlet {
 			Statement stmt = connection.createStatement();
 			String pwd = getRandomString(6);
 			String sql;
-			sql = "update tieba_db.tieba_user_table set user_pwd='" + MD5SignUtils.MD5(pwd) + "' where user_name='"
-					+ jsonObject.getString("user_name") + "'&&user_email='" + jsonObject.getString("user_email") + "';";
+			sql = "update tieba_db.tieba_user_table set user_pwd='" + MD5SignUtils.MD5(pwd) + "' where user_email='"
+					+ jsonObject.getString("user_email") + "';";
 
 			int isSucess = stmt.executeUpdate(sql);
 			out = response.getWriter();

@@ -121,9 +121,6 @@
 		if (!checkEmail(forgetInfo.email)) {
 			return callback('邮箱地址不合法');
 		}
-		if (forgetInfo.account.length < 5) {
-			return callback('用户名最短需要 5 个字符');
-		}
 		return callback(null, '邮件正在发送，如果没有收到，请去邮箱垃圾邮件那里找找。');
 	};
 	

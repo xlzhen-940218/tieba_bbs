@@ -114,6 +114,8 @@
 		<div class="mui-content-padded">
 			<button id='login' type="button"
 				class="mui-btn mui-btn-block mui-btn-primary">登录</button>
+				<button id='quick_login' type="button"
+				class="mui-btn mui-btn-block mui-btn-danger">快捷登录</button>
 			<div class="link-area">
 				<a id='reg'>注册账号</a> <span class="spliter">|</span> <a
 					id='forgetPassword'>忘记密码</a>
@@ -169,6 +171,7 @@
 				var autoLoginButton = doc.getElementById("autoLogin");
 				var regButton = doc.getElementById('reg');
 				var forgetButton = doc.getElementById('forgetPassword');
+				var quick_login=doc.getElementById('quick_login');
 				loginButton.addEventListener('tap', function(event) {
 					var loginInfo = {
 						account : accountBox.value,
@@ -176,6 +179,22 @@
 					};
 					login(loginInfo);
 				});
+				quick_login.addEventListener('tap', function(event) {
+					$.openWindow({
+						url : 'quick_login.html',
+						id : 'quick_login',
+						preload : true,
+						show : {
+							aniShow : 'pop-in'
+						},
+						styles : {
+							popGesture : 'hide'
+						},
+						waiting : {
+							autoShow : false
+						}
+					});
+					});
 				$.enterfocus('#login-form input', function() {
 					$.trigger(loginButton, 'tap');
 				});
