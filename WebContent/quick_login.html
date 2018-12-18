@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+<title>快捷登录</title>
+<link href="css/mui.min.3.3.0.css" rel="stylesheet" />
+<link href="css/style.css" rel="stylesheet" />
+<style>
+.area {
+	margin: 20px auto 0px auto;
+}
+
+.mui-input-group:first-child {
+	margin-top: 20px;
+}
+
+.mui-input-group label {
+	width: 32%;
+}
+
+.mui-input-row label ~input, .mui-input-row label ~select,
+	.mui-input-row label ~textarea {
+	width: 68%;
+}
+
+.mui-checkbox input[type=checkbox], .mui-radio input[type=radio] {
+	top: 6px;
+}
+
+.mui-content-padded {
+	margin-top: 25px;
+}
+
+.mui-btn {
+	padding: 10px;
+}
+</style>
+</head>
+
+<body>
+	<header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title">快捷登录</h1>
+	</header>
+	<div class="mui-content">
+		<form class="mui-input-group">
+			<div class="mui-input-row">
+				<label>邮箱账号</label> <input id='email' type="email"
+					class="mui-input-clear mui-input" placeholder="请输入邮箱">
+			</div>
+		</form>
+		<div class="mui-content-padded">
+			<button id='reg' class="mui-btn mui-btn-block mui-btn-primary">快捷登录</button>
+		</div>
+		<div class="mui-content-padded">
+			<p>注册邮箱用于密码找回，请不要随意填写哦！</p>
+		</div>
+	</div>
+	<script src="js/mui.min.js"></script>
+	<script src="js/app.js"></script>
+
+	<script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+	<script src="js/md5.js" type="text/javascript"></script>
+	<script>
+		(function(mui, doc) {
+			mui.init();
+			mui.ready(function() {
+				var regButton = doc.getElementById('reg');
+				var emailBox = doc.getElementById('email');
+				regButton.addEventListener('tap', function(event) {
+					var regInfo = {
+						account : _getRandomString(8),
+						password : _getRandomString(8),
+						email : emailBox.value
+					};
+					app.regCheck(regInfo, function(err) {
+						if (err) {
+							mui.toast(err);
+							return;
+						}
+						register(regInfo);
+					});
+
+				});
+			});
+		}(mui, document));
+	</script>
+	<script type="text/javascript">
+		function register(regInfo) {
+			$.ajax({
+				url : "./RegisterUser",
+				data : "{\"user_name\": \"" + regInfo.account + "\", \"user_pwd\": \"" + $.md5(regInfo.password) + "\",\"user_email\":\"" + regInfo.email + "\"}",
+				type : "post",
+				beforeSend : function() {
+				},
+				error : function(data) {
+					mui.toast(data.responseText);
+				},
+				success : function(data) {
+					if (data.result.indexOf("success") != -1) {
+						mui.toast('注册成功');
+						
+						//注册完成时关闭自动登录
+						var settings = app.getSettings();
+						settings.autoLogin = false;
+						app.setSettings(settings);
+						
+						var userInfo={
+								user_name:regInfo.account,
+								user_pwd:$.md5(regInfo.password)
+						};
+						login(userInfo);
+					} else {
+						mui.toast(data);
+					}
+
+				}
+			});
+		}
+	</script>
+	<script type="text/javascript">
+			function login(userInfo) {
+				$.ajax({
+					url: "./LoginUser",
+					data: "{\"user_name\": \"" + userInfo.user_name + "\", \"user_pwd\": \"" + userInfo.user_pwd + "\"}",
+					type: "post",
+					beforeSend: function() {},
+					error: function(data) {
+						mui.toast(data.responseText);
+						setTimeout(() => {
+							mui.openWindow({
+								url: 'login.html',
+								id: 'login',
+								show: {
+									aniShow: 'pop-in'
+								}
+							});
+						}, 10000);
+					},
+					success: function(data) {
+						if (data.user.user_name != null) {
+							app.login(data.user);
+							localStorage.setItem('$token', data.token);
+							mui.toast('自动登录成功');
+							mui.openWindow({
+								url: 'index.html',
+								id: 'index',
+								show: {
+									aniShow: 'pop-in'
+								}
+							});
+						} else {
+							mui.toast(data.result);
+							setTimeout(() => {
+								mui.openWindow({
+									url: 'login.html',
+									id: 'login',
+									show: {
+										aniShow: 'pop-in'
+									}
+								});
+							}, 10000);
+						}
+
+					}
+				});
+			}
+		</script>
+	<script type="text/javascript">
+		function _getRandomString(len) {
+		    len = len || 32;
+		    var $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678'; // 默认去掉了容易混淆的字符oOLl,9gq,Vv,Uu,I1
+		    var maxPos = $chars.length;
+		    var pwd = '';
+		    for (i = 0; i < len; i++) {
+		        pwd += $chars.charAt(Math.floor(Math.random() * maxPos));
+		    }
+		    return pwd;
+		}
+	</script>
+</body>
+
+</html>
