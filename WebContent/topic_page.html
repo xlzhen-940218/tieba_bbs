@@ -417,7 +417,12 @@
 					if (GetQueryString("topic_img" + i) != null)
 						$('#topic_content').append("<img style=\"margin:2px;vertical-align: middle;\" src=\"" + GetQueryString("topic_img" + i) + "\" data-preview-src data-preview-group=\"1\">");
 				}
-			
+				$('#topic_content').on('tap','.mui-card-link',function(){
+					var link=$(this).attr("href");
+					if(link.indexOf('http://')!=-1||link.indexOf('https://')!=-1||link.indexOf('magnet:?xt=urn:btih:')!=-1){
+						window.location.href=link;
+					}
+				});
 				$('#star').html("点赞(" + GetQueryString("star_count") + ")");
 				$("title").html(topic_title + "\t-\t贴子");
 				$(".mui-title").html((topic_title.length > 8 ? topic_title.substring(0, 8) + "..." : topic_title) + "\t-\t贴子");
@@ -504,7 +509,7 @@
 						});
 						break;
 					}
-
+					
 				});
 			});
 		}(mui, document));
