@@ -1,2 +1,2 @@
 # tieba_bbs
-demo:tieba.group
+demo:<a href='http://tieba.group'>tieba.group</a>
